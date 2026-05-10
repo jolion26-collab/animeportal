@@ -272,8 +272,9 @@ body{font-family:var(--font-b);color:var(--txt);font-size:14px}
       <button class="auth-btn" id="signup-btn" onclick="doSignup()">Create Account</button>
     </div>
 
-    <div class="auth-divider"><span>or continue with demo</span></div>
-    <button class="auth-btn" style="background:var(--bg2);color:var(--txt2);border:1px solid var(--bord);margin-top:0" onclick="doDemo()">👀 Try Demo (no account needed)</button>
+    <div class="auth-divider"><span>or try it instantly</span></div>
+    <button class="auth-btn" style="background:var(--grd1);font-size:16px;" onclick="doDemo()">🎌 Enter Anime Portal (Demo)</button>
+    <div style="text-align:center;font-size:11px;color:var(--txt3);margin-top:10px">Sign up saves data to your real database once Supabase keys are added</div>
   </div>
 </div>
 
@@ -435,13 +436,15 @@ body{font-family:var(--font-b);color:var(--txt);font-size:14px}
 
 <script>
 // ══════════════════════════════════════════
-// CONFIGURATION — PASTE YOUR SUPABASE KEYS HERE
+// PASTE YOUR SUPABASE KEYS BELOW (optional)
+// If left blank, app runs in demo mode
 // ══════════════════════════════════════════
-const SUPABASE_URL = 'dvlmnpiwcxwrztxgmgqv';
+const SUPABASE_URL = 'https://dvlmnpiwcxwrztxgmgqv.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bG1ucGl3Y3h3cnp0eGdtZ3F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MDUzMzcsImV4cCI6MjA5Mzk4MTMzN30.BbSCpu26r92bIAcFXhv_GCaeJ54fsyTVGtjeSK670X4';
 // ══════════════════════════════════════════
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const HAS_SUPABASE = SUPABASE_URL && SUPABASE_URL.includes('supabase.co');
+const db = HAS_SUPABASE ? window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY) : null;
 let currentUser = null;
 let currentProfile = null;
 let demoMode = false;
@@ -532,9 +535,10 @@ async function doLogin(){
   const email=document.getElementById('login-email').value.trim();
   const password=document.getElementById('login-password').value;
   if(!email||!password){showAuthError('Please fill in all fields.');return;}
+  if(!HAS_SUPABASE){showAuthError('No database connected yet. Use the Demo button below, or add your Supabase keys to the code.');return;}
   const btn=document.getElementById('login-btn');
   btn.disabled=true;btn.textContent='Signing in...';
-  const {error}=await supabase.auth.signInWithPassword({email,password});
+  const {error}=await db.auth.signInWithPassword({email,password});
   btn.disabled=false;btn.textContent='Sign In';
   if(error)showAuthError(error.message);
 }
@@ -547,9 +551,10 @@ async function doSignup(){
   if(!name||!username||!email||!password){showAuthError('Please fill in all fields.');return;}
   if(username.length<3){showAuthError('Username must be at least 3 characters.');return;}
   if(password.length<6){showAuthError('Password must be at least 6 characters.');return;}
+  if(!HAS_SUPABASE){showAuthError('No database connected yet. Use the Demo button below to try the app, or add your Supabase keys to go live.');return;}
   const btn=document.getElementById('signup-btn');
   btn.disabled=true;btn.textContent='Creating account...';
-  const {error}=await supabase.auth.signUp({email,password,options:{data:{display_name:name,username}}});
+  const {error}=await db.auth.signUp({email,password,options:{data:{display_name:name,username}}});
   btn.disabled=false;btn.textContent='Create Account';
   if(error){showAuthError(error.message);return;}
   toast('Account created! Check your email to confirm, then sign in. 🎉',6000);
@@ -565,7 +570,7 @@ async function doDemo(){
 
 async function doSignOut(){
   if(demoMode){demoMode=false;currentUser=null;currentProfile=null;showAuthScreen();return;}
-  await supabase.auth.signOut();
+  await db.auth.signOut();
   currentUser=null;currentProfile=null;
   showAuthScreen();
   toast('Signed out. See you next time! 👋');
@@ -594,9 +599,9 @@ async function loadFeed(){
   const container=document.getElementById('feed-container');
   container.innerHTML='<div class="loading"><div class="spinner"></div>Loading posts...</div>';
   if(demoMode){feedPosts=[...demoPosts];renderFeed();return;}
-  const {data,error}=await supabase.from('posts').select(`*,profiles(display_name,username,avatar_letter)`).order('created_at',{ascending:false}).limit(30);
+  const {data,error}=await db.from('posts').select(`*,profiles(display_name,username,avatar_letter)`).order('created_at',{ascending:false}).limit(30);
   if(error){container.innerHTML='<div class="empty-state"><div class="es-emoji">⚠️</div><p>Could not load posts.</p></div>';return;}
-  const {data:myLikes}=await supabase.from('likes').select('post_id').eq('user_id',currentUser.id);
+  const {data:myLikes}=await db.from('likes').select('post_id').eq('user_id',currentUser.id);
   const likedSet=new Set((myLikes||[]).map(l=>l.post_id));
   feedPosts=(data||[]).map(p=>({...p,liked:likedSet.has(p.id),reposted:false,commentsList:[]}));
   renderFeed();
@@ -678,7 +683,7 @@ async function doPost(){
     renderFeed();btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Post';
     toast('Posted! 🚀 (Demo mode — not saved)');return;
   }
-  const {data,error}=await supabase.from('posts').insert({user_id:currentUser.id,body,anime_tag}).select(`*,profiles(display_name,username,avatar_letter)`).single();
+  const {data,error}=await db.from('posts').insert({user_id:currentUser.id,body,anime_tag}).select(`*,profiles(display_name,username,avatar_letter)`).single();
   btn.disabled=false;btn.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="14" height="14"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Post';
   if(error){toast('Failed to post. Try again!');return;}
   ci.value='';document.getElementById('post-anime-tag').value='';
@@ -691,10 +696,10 @@ async function toggleLike(i){
   const p=feedPosts[i];
   if(demoMode){p.liked=!p.liked;p.likes_count+=(p.liked?1:-1);renderFeed();return;}
   if(p.liked){
-    await supabase.from('likes').delete().eq('user_id',currentUser.id).eq('post_id',p.id);
+    await db.from('likes').delete().eq('user_id',currentUser.id).eq('post_id',p.id);
     p.liked=false;p.likes_count=Math.max(0,p.likes_count-1);
   } else {
-    await supabase.from('likes').insert({user_id:currentUser.id,post_id:p.id});
+    await db.from('likes').insert({user_id:currentUser.id,post_id:p.id});
     p.liked=true;p.likes_count++;
   }
   const btn=document.querySelector(`#pc-${i} .pa`);
@@ -722,7 +727,7 @@ async function submitComment(i,input){
   const p=feedPosts[i];
   if(!p.commentsList)p.commentsList=[];
   if(!demoMode){
-    await supabase.from('comments').insert({user_id:currentUser.id,post_id:p.id,body:text});
+    await db.from('comments').insert({user_id:currentUser.id,post_id:p.id,body:text});
   }
   p.commentsList.push({name:currentProfile.display_name,handle:currentProfile.username,letter:currentProfile.avatar_letter,text});
   p.comments_count++;
@@ -733,7 +738,7 @@ async function submitComment(i,input){
 
 async function deletePost(postId,i){
   if(!confirm('Delete this post?'))return;
-  if(!demoMode)await supabase.from('posts').delete().eq('id',postId).eq('user_id',currentUser.id);
+  if(!demoMode)await db.from('posts').delete().eq('id',postId).eq('user_id',currentUser.id);
   feedPosts.splice(i,1);
   renderFeed();
   toast('Post deleted');
@@ -766,7 +771,7 @@ async function loadWatchlist(){
   const container=document.getElementById('wl-container');
   container.innerHTML='<div class="loading"><div class="spinner"></div>Loading...</div>';
   if(demoMode){watchlistData=[...demoWatchlist];renderWatchlist();return;}
-  const {data,error}=await supabase.from('watchlist').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  const {data,error}=await db.from('watchlist').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
   watchlistData=data||[];
   renderWatchlist();
 }
@@ -804,7 +809,7 @@ async function addToWL(title,emoji,genre){
     document.getElementById('wl-badge').textContent=watchlistData.length;
     toast(`Added ${title} to your watchlist! 📚`);return;
   }
-  const {error}=await supabase.from('watchlist').insert({user_id:currentUser.id,anime_title:title,anime_emoji:emoji,anime_genre:genre});
+  const {error}=await db.from('watchlist').insert({user_id:currentUser.id,anime_title:title,anime_emoji:emoji,anime_genre:genre});
   if(error){toast('Could not add to watchlist.');return;}
   watchlistData.push({anime_title:title,anime_emoji:emoji,anime_genre:genre,episode:1,total_episodes:0,status:'watching'});
   document.getElementById('wl-badge').textContent=watchlistData.length;
@@ -812,7 +817,7 @@ async function addToWL(title,emoji,genre){
 }
 
 async function removeFromWL(id,i){
-  if(!demoMode)await supabase.from('watchlist').delete().eq('id',id);
+  if(!demoMode)await db.from('watchlist').delete().eq('id',id);
   watchlistData.splice(i,1);
   renderWatchlist();
   toast('Removed from watchlist');
@@ -821,7 +826,7 @@ async function removeFromWL(id,i){
 async function markComplete(id,i){
   const w=watchlistData[i];
   const newStatus=w.status==='completed'?'watching':'completed';
-  if(!demoMode)await supabase.from('watchlist').update({status:newStatus}).eq('id',id);
+  if(!demoMode)await db.from('watchlist').update({status:newStatus}).eq('id',id);
   watchlistData[i].status=newStatus;
   renderWatchlist();
   toast(newStatus==='completed'?'Marked as completed! 🎉':'Added back to watching!');
@@ -830,9 +835,9 @@ async function markComplete(id,i){
 // ── PROFILE ──
 async function loadProfile(){
   if(demoMode){renderProfileData(demoProfile,demoPosts);return;}
-  const {data:prof}=await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+  const {data:prof}=await db.from('profiles').select('*').eq('id',currentUser.id).single();
   currentProfile=prof||currentProfile;
-  const {data:posts}=await supabase.from('posts').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
+  const {data:posts}=await db.from('posts').select('*').eq('user_id',currentUser.id).order('created_at',{ascending:false});
   renderProfileData(currentProfile,posts||[]);
 }
 
@@ -863,7 +868,7 @@ async function saveProfile(){
   const btn=document.getElementById('ep-save-btn');
   btn.disabled=true;btn.textContent='Saving...';
   if(!demoMode){
-    await supabase.from('profiles').update({display_name:name,bio,avatar_letter:name.charAt(0).toUpperCase()}).eq('id',currentUser.id);
+    await db.from('profiles').update({display_name:name,bio,avatar_letter:name.charAt(0).toUpperCase()}).eq('id',currentUser.id);
   }
   if(currentProfile){currentProfile.display_name=name;currentProfile.bio=bio;currentProfile.avatar_letter=name.charAt(0).toUpperCase();}
   const letter=name.charAt(0).toUpperCase();
@@ -891,7 +896,7 @@ async function renderWTF(){
       </div>`;
     return;
   }
-  const {data}=await supabase.from('profiles').select('*').neq('id',currentUser.id).order('followers_count',{ascending:false}).limit(3);
+  const {data}=await db.from('profiles').select('*').neq('id',currentUser.id).order('followers_count',{ascending:false}).limit(3);
   const users=data||[];
   document.getElementById('wtf-container').innerHTML=users.map(u=>`
     <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--bord)">
@@ -902,7 +907,7 @@ async function renderWTF(){
 }
 
 async function followUser(userId,btn){
-  const {error}=await supabase.from('follows').insert({follower_id:currentUser.id,following_id:userId});
+  const {error}=await db.from('follows').insert({follower_id:currentUser.id,following_id:userId});
   if(error){toast('Already following!');return;}
   btn.textContent='Following';
   btn.style.background='var(--bg3)';
@@ -913,21 +918,20 @@ async function followUser(userId,btn){
 
 // ── INIT ──
 async function init(){
-  if(SUPABASE_URL==='YOUR_SUPABASE_URL'){
-    // No keys set — auto-enter demo mode
-    demoMode=true;currentUser={id:'demo'};currentProfile=demoProfile;
-    enterApp();return;
+  if(!HAS_SUPABASE){
+    // No keys — show auth screen, demo mode available
+    return;
   }
-  const {data:{session}}=await supabase.auth.getSession();
+  const {data:{session}}=await db.auth.getSession();
   if(session){
     currentUser=session.user;
-    const {data}=await supabase.from('profiles').select('*').eq('id',currentUser.id).single();
+    const {data}=await db.from('profiles').select('*').eq('id',currentUser.id).single();
     currentProfile=data;
     enterApp();
   }
-  supabase.auth.onAuthStateChange((_event,session)=>{
-    if(session&&!currentUser){currentUser=session.user;supabase.from('profiles').select('*').eq('id',currentUser.id).single().then(({data})=>{currentProfile=data;enterApp();});}
-    else if(!session){currentUser=null;currentProfile=null;showAuthScreen();}
+  db.auth.onAuthStateChange((_event,session)=>{
+    if(session&&!currentUser){currentUser=session.user;db.from('profiles').select('*').eq('id',currentUser.id).single().then(({data})=>{currentProfile=data;enterApp();});}
+    else if(!session&&currentUser){currentUser=null;currentProfile=null;showAuthScreen();}
   });
 }
 init();
