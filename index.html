@@ -171,10 +171,10 @@ body{font-family:var(--font-b);color:var(--txt);font-size:14px}
 .wl-rm{flex:1;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:7px;color:var(--red);font-size:11px;font-weight:700;padding:5px;cursor:pointer;font-family:var(--font-h)}
 .wl-done{flex:1;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:7px;color:var(--green);font-size:11px;font-weight:700;padding:5px;cursor:pointer;font-family:var(--font-h)}
 
-.prof-banner{height:180px;background:var(--bg2);position:relative;overflow:hidden}
+.prof-banner{height:180px;background:var(--bg2);position:relative;overflow:visible}
 .prof-banner-ov{position:absolute;inset:0;background:linear-gradient(135deg,rgba(109,40,217,0.4),rgba(190,24,93,0.3))}
 .prof-banner-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:16px;font-size:75px;opacity:0.05;flex-wrap:wrap;padding:16px}
-.prof-ava-ring{position:absolute;bottom:-50px;left:26px;width:96px;height:96px;border-radius:50%;background:var(--grd1);padding:4px;border:4px solid var(--bg)}
+.prof-ava-ring{position:absolute;bottom:-48px;left:28px;width:96px;height:96px;border-radius:50%;background:var(--grd1);padding:4px;border:4px solid var(--bg);z-index:10}
 .prof-ava-in{width:100%;height:100%;border-radius:50%;background:var(--bg1);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:32px;font-weight:900}
 .prof-body{padding:68px 26px 26px}
 .prof-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
@@ -360,11 +360,13 @@ body{font-family:var(--font-b);color:var(--txt);font-size:14px}
     </main>
     <aside id="rpanel">
       <div class="rp-hd">🔥 Trending Now</div>
-      <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-hot">🔥</div><div class="tr-name">Demon Slayer S4</div><div class="tr-pct">+245%</div></div>
-      <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-hot">2</div><div class="tr-name">Jujutsu Kaisen</div><div class="tr-pct">+189%</div></div>
-      <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-mid">3</div><div class="tr-name">Attack on Titan</div><div class="tr-pct">+156%</div></div>
-      <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-mid">4</div><div class="tr-name">My Hero Academia</div><div class="tr-pct">+98%</div></div>
-      <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-mid">5</div><div class="tr-name">Chainsaw Man</div><div class="tr-pct">+87%</div></div>
+      <div id="trending-list">
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-hot">🔥</div><div class="tr-name">Demon Slayer</div><div class="tr-pct">top</div></div>
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-hot">2</div><div class="tr-name">Frieren</div><div class="tr-pct">top</div></div>
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-mid">3</div><div class="tr-name">One Piece</div><div class="tr-pct">top</div></div>
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-mid">4</div><div class="tr-name">JJK</div><div class="tr-pct">top</div></div>
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-mid">5</div><div class="tr-name">AOT</div><div class="tr-pct">top</div></div>
+      </div>
       <div class="rp-div"></div>
       <div class="rp-hd">👥 Who To Follow</div>
       <div id="wtf"></div>
@@ -522,7 +524,7 @@ function enterApp(){
   var letter=PROFILE&&PROFILE.avatar_letter?PROFILE.avatar_letter:'?';
   document.getElementById('nav-ava').textContent=letter;
   document.getElementById('c-ava').textContent=letter;
-  renderDiscover();renderWTF();loadFeed();
+  renderDiscover();renderWTF();loadFeed();loadTrending();
 }
 
 function go(page){
@@ -546,6 +548,7 @@ function loadFeed(){
       var liked=new Set((lr.data||[]).map(function(l){return l.post_id;}));
       // Load comments for all posts
       var postIds=posts.map(function(p){return p.id;});
+      if(!postIds.length){POSTS=[];renderFeed();return;}
       SBC.from('comments').select('*,profiles(display_name,username,avatar_letter)').in('post_id',postIds).order('created_at',{ascending:true}).then(function(cr){
         var cmtMap={};
         (cr.data||[]).forEach(function(c){
@@ -653,10 +656,15 @@ function addCmt(i,input){
   var p=POSTS[i];if(!p.cmts)p.cmts=[];
   var cmtData={name:PROFILE.display_name,handle:PROFILE.username,letter:PROFILE.avatar_letter,text:text};
   if(!IS_DEMO){
+    // Save comment to DB
     SBC.from('comments').insert({user_id:USER.id,post_id:p.id,body:text}).then(function(res){
       if(res.error){toast('Could not save comment. Try again!');return;}
+      // Also update the comment count on the post
+      SBC.from('posts').update({comments_count:p.comments_count}).eq('id',p.id).then(function(){});
       toast('Comment posted! 💬');
     });
+  } else {
+    toast('Comment posted! 💬');
   }
   p.cmts.push(cmtData);
   p.comments_count++;
@@ -757,6 +765,33 @@ function saveProfile(){
   document.getElementById('nav-ava').textContent=name[0].toUpperCase();
   document.getElementById('c-ava').textContent=name[0].toUpperCase();
   closeEdit();renderProfile();toast('Profile updated! ✨');
+}
+
+function loadTrending(){
+  // Count posts per anime_tag from last 7 days
+  var since = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+  SBC.from('posts').select('anime_tag').gte('created_at', since).not('anime_tag','is',null).then(function(res){
+    if(res.error || !res.data || !res.data.length) return;
+    // Count each tag
+    var counts = {};
+    res.data.forEach(function(p){
+      if(p.anime_tag){
+        counts[p.anime_tag] = (counts[p.anime_tag]||0) + 1;
+      }
+    });
+    // Sort by count
+    var sorted = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];}).slice(0,5);
+    if(!sorted.length) return;
+    var total = res.data.length;
+    var html = sorted.map(function(tag, i){
+      var count = counts[tag];
+      var pct = Math.round((count/total)*100);
+      var rankClass = i < 2 ? 't-hot' : 't-mid';
+      var rankLabel = i === 0 ? '🔥' : String(i+1);
+      return '<div class="tr-row" onclick="go('discover')"><div class="tr-rank '+rankClass+'">'+rankLabel+'</div><div class="tr-name">'+tag+'</div><div class="tr-pct">'+count+' posts</div></div>';
+    }).join('');
+    document.getElementById('trending-list').innerHTML = html;
+  });
 }
 
 function renderWTF(){
