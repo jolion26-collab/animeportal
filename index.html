@@ -174,9 +174,9 @@ body{font-family:var(--font-b);color:var(--txt);font-size:14px}
 .prof-banner{height:180px;background:var(--bg2);position:relative;overflow:hidden}
 .prof-banner-ov{position:absolute;inset:0;background:linear-gradient(135deg,rgba(109,40,217,0.4),rgba(190,24,93,0.3))}
 .prof-banner-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:16px;font-size:75px;opacity:0.05;flex-wrap:wrap;padding:16px}
-.prof-ava-ring{position:absolute;bottom:-36px;left:26px;width:76px;height:76px;border-radius:50%;background:var(--grd1);padding:3px}
-.prof-ava-in{width:100%;height:100%;border-radius:50%;background:var(--bg1);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:28px;font-weight:900}
-.prof-body{padding:46px 26px 26px}
+.prof-ava-ring{position:absolute;bottom:-44px;left:26px;width:88px;height:88px;border-radius:50%;background:var(--grd1);padding:3px;border:4px solid var(--bg)}
+.prof-ava-in{width:100%;height:100%;border-radius:50%;background:var(--bg1);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:32px;font-weight:900}
+.prof-body{padding:60px 26px 26px}
 .prof-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
 .prof-name{font-family:var(--font-h);font-size:22px;font-weight:900;letter-spacing:-0.02em}
 .prof-handle{font-size:13px;color:var(--txt3);margin-top:2px}
@@ -412,6 +412,26 @@ var SHOWS=[
   {title:'My Hero Academia',emoji:'🦸',genre:'action',score:'8.6',bg:'linear-gradient(135deg,#150005,#300010)'},
   {title:'Chainsaw Man',emoji:'🔪',genre:'action',score:'8.8',bg:'linear-gradient(135deg,#200005,#400010)'},
   {title:'Spy x Family',emoji:'👨‍👩‍👧',genre:'comedy',score:'8.7',bg:'linear-gradient(135deg,#0a1020,#0f1830)'},
+  {title:'Attack on Titan',emoji:'⚡',genre:'action',score:'9.4',bg:'linear-gradient(135deg,#1a1000,#3d2800)'},
+  {title:'Hunter x Hunter',emoji:'🎯',genre:'action',score:'9.4',bg:'linear-gradient(135deg,#002010,#005030)'},
+  {title:'Fullmetal Alchemist',emoji:'⚗️',genre:'action',score:'9.7',bg:'linear-gradient(135deg,#1a0a00,#3d2000)'},
+  {title:'Steins;Gate',emoji:'🕰️',genre:'scifi',score:'9.2',bg:'linear-gradient(135deg,#001520,#003040)'},
+  {title:'Violet Evergarden',emoji:'💌',genre:'fantasy',score:'9.0',bg:'linear-gradient(135deg,#001030,#002060)'},
+  {title:'Your Lie in April',emoji:'🎹',genre:'romance',score:'9.0',bg:'linear-gradient(135deg,#100020,#200040)'},
+  {title:'Mob Psycho 100',emoji:'🧬',genre:'action',score:'9.1',bg:'linear-gradient(135deg,#001020,#002040)'},
+  {title:'Haikyuu',emoji:'🏐',genre:'action',score:'9.0',bg:'linear-gradient(135deg,#001a10,#003020)'},
+  {title:'Re:Zero',emoji:'🌸',genre:'fantasy',score:'8.9',bg:'linear-gradient(135deg,#150020,#300040)'},
+  {title:'Vinland Saga',emoji:'🪓',genre:'action',score:'9.2',bg:'linear-gradient(135deg,#1a1000,#402800)'},
+  {title:'Mushishi',emoji:'🍃',genre:'fantasy',score:'9.1',bg:'linear-gradient(135deg,#001500,#003000)'},
+  {title:'Neon Genesis',emoji:'🔮',genre:'scifi',score:'8.9',bg:'linear-gradient(135deg,#100020,#200050)'},
+  {title:'Tokyo Ghoul',emoji:'👺',genre:'thriller',score:'8.4',bg:'linear-gradient(135deg,#200000,#500000)'},
+  {title:'Dragon Ball Z',emoji:'🔥',genre:'action',score:'8.8',bg:'linear-gradient(135deg,#200800,#501500)'},
+  {title:'Naruto',emoji:'🍥',genre:'action',score:'8.6',bg:'linear-gradient(135deg,#201000,#503000)'},
+  {title:'Bleach',emoji:'⚔️',genre:'action',score:'8.5',bg:'linear-gradient(135deg,#001020,#002050)'},
+  {title:'Sword Art Online',emoji:'🗡️',genre:'scifi',score:'8.0',bg:'linear-gradient(135deg,#000a20,#001040)'},
+  {title:'No Game No Life',emoji:'♟️',genre:'fantasy',score:'8.6',bg:'linear-gradient(135deg,#200015,#500030)'},
+  {title:'Toradora',emoji:'🐯',genre:'romance',score:'8.8',bg:'linear-gradient(135deg,#200010,#500025)'},
+  {title:'Clannad',emoji:'💙',genre:'romance',score:'9.0',bg:'linear-gradient(135deg,#000020,#000050)'},
 ];
 var COLORS=['linear-gradient(135deg,#7c3aed,#be185d)','linear-gradient(135deg,#0e7490,#1d4ed8)','linear-gradient(135deg,#b45309,#dc2626)','linear-gradient(135deg,#065f46,#1d4ed8)','linear-gradient(135deg,#4c1d95,#6d28d9)'];
 
@@ -515,10 +535,21 @@ function loadFeed(){
   document.getElementById('feed-list').innerHTML='<div class="loading"><div class="spinner"></div>Loading posts...</div>';
   SBC.from('posts').select('*,profiles(display_name,username,avatar_letter)').order('created_at',{ascending:false}).limit(40).then(function(res){
     if(res.error){document.getElementById('feed-list').innerHTML='<div class="empty"><div class="empty-e">⚠️</div><p>Could not load posts.</p></div>';return;}
+    var posts=res.data||[];
     SBC.from('likes').select('post_id').eq('user_id',USER.id).then(function(lr){
       var liked=new Set((lr.data||[]).map(function(l){return l.post_id;}));
-      POSTS=(res.data||[]).map(function(p){return Object.assign({},p,{liked:liked.has(p.id),reposted:false,cmts:[]});});
-      renderFeed();
+      // Load comments for all posts
+      var postIds=posts.map(function(p){return p.id;});
+      SBC.from('comments').select('*,profiles(display_name,username,avatar_letter)').in('post_id',postIds).order('created_at',{ascending:true}).then(function(cr){
+        var cmtMap={};
+        (cr.data||[]).forEach(function(c){
+          if(!cmtMap[c.post_id])cmtMap[c.post_id]=[];
+          var pr=c.profiles||{};
+          cmtMap[c.post_id].push({name:pr.display_name||'User',handle:pr.username||'user',letter:pr.avatar_letter||'?',text:c.body});
+        });
+        POSTS=posts.map(function(p){return Object.assign({},p,{liked:liked.has(p.id),reposted:false,cmts:cmtMap[p.id]||[]});});
+        renderFeed();
+      });
     });
   });
 }
@@ -614,9 +645,17 @@ function toggleCmts(i){document.getElementById('cmts-'+i).classList.toggle('open
 function addCmt(i,input){
   var text=input.value.trim();if(!text)return;
   var p=POSTS[i];if(!p.cmts)p.cmts=[];
-  if(!IS_DEMO)SBC.from('comments').insert({user_id:USER.id,post_id:p.id,body:text}).then(function(){});
-  p.cmts.push({name:PROFILE.display_name,handle:PROFILE.username,letter:PROFILE.avatar_letter,text:text});
-  p.comments_count++;input.value='';renderFeed();
+  var cmtData={name:PROFILE.display_name,handle:PROFILE.username,letter:PROFILE.avatar_letter,text:text};
+  if(!IS_DEMO){
+    SBC.from('comments').insert({user_id:USER.id,post_id:p.id,body:text}).then(function(res){
+      if(res.error){toast('Could not save comment. Try again!');return;}
+      toast('Comment posted! 💬');
+    });
+  }
+  p.cmts.push(cmtData);
+  p.comments_count++;
+  input.value='';
+  renderFeed();
   setTimeout(function(){document.getElementById('cmts-'+i).classList.add('open');},50);
 }
 
@@ -726,6 +765,8 @@ function doFollow(id,btn){
   SBC.from('follows').insert({follower_id:USER.id,following_id:id}).then(function(res){
     if(res.error){toast('Already following!');return;}
     btn.textContent='Following';btn.style.background='var(--bg3)';btn.style.color='var(--txt2)';btn.style.border='1px solid var(--bord)';
+    if(PROFILE){PROFILE.following_count=(PROFILE.following_count||0)+1;}
+    document.getElementById('st-following').textContent=PROFILE?PROFILE.following_count:0;
     toast('Followed! 🎉');
   });
 }
