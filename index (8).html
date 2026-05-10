@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anime Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f0d1a;--bg1:#16132a;--bg2:#1e1a36;--bg3:#252040;--bg4:#2e2850;
+  --card:#1a1730;--acc:#8b5cf6;--acc2:#a78bfa;
+  --pink:#ec4899;--gold:#f59e0b;--green:#10b981;--red:#ef4444;
+  --txt:#f1f0ff;--txt2:#a09ec0;--txt3:#6b6890;
+  --bord:rgba(255,255,255,0.07);--bord2:rgba(139,92,246,0.3);
+  --grd1:linear-gradient(135deg,#8b5cf6,#ec4899);
+  --grd3:linear-gradient(135deg,#f59e0b,#ec4899);
+  --font-h:'Outfit',sans-serif;--font-b:'Nunito',sans-serif;
+}
+html,body{height:100%;overflow:hidden;background:var(--bg)}
+body{font-family:var(--font-b);color:var(--txt);font-size:14px}
+*::-webkit-scrollbar{width:4px}*::-webkit-scrollbar-thumb{background:var(--bg4);border-radius:4px}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#auth-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:1000}
+.auth-card{background:var(--bg1);border:1px solid var(--bord2);border-radius:24px;padding:36px;width:100%;max-width:400px;animation:fadeUp 0.3s ease}
+.auth-logo{text-align:center;margin-bottom:24px}
+.auth-icon{width:54px;height:54px;border-radius:16px;background:var(--grd1);display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 10px}
+.auth-title{font-family:var(--font-h);font-size:22px;font-weight:900;background:var(--grd1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.auth-sub{font-size:12px;color:var(--txt3);margin-top:3px}
+.auth-tabs{display:flex;background:var(--bg2);border-radius:12px;padding:4px;gap:4px;margin-bottom:20px}
+.auth-tab{flex:1;padding:9px;text-align:center;border-radius:9px;font-family:var(--font-h);font-size:14px;font-weight:700;color:var(--txt2);cursor:pointer;border:none;background:none;transition:all 0.15s}
+.auth-tab.act{background:var(--acc);color:#fff}
+.auth-err{background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.25);border-radius:10px;padding:10px 14px;color:var(--red);font-size:13px;margin-bottom:14px;display:none}
+.auth-err.show{display:block}
+.auth-lbl{font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:6px;font-family:var(--font-h)}
+.auth-inp{width:100%;background:var(--bg2);border:1px solid var(--bord);border-radius:11px;padding:11px 13px;color:var(--txt);font-family:var(--font-b);font-size:14px;outline:none;margin-bottom:12px;transition:border-color 0.2s}
+.auth-inp:focus{border-color:var(--bord2)}
+.auth-inp::placeholder{color:var(--txt3)}
+.auth-btn{width:100%;background:var(--grd1);color:#fff;border:none;border-radius:11px;font-family:var(--font-h);font-size:15px;font-weight:900;padding:12px;cursor:pointer;transition:opacity 0.15s;margin-top:4px}
+.auth-btn:hover{opacity:0.9}
+.auth-btn:disabled{opacity:0.5;cursor:not-allowed}
+.auth-demo{width:100%;background:var(--bg2);color:var(--txt2);border:1px solid var(--bord);border-radius:11px;font-family:var(--font-h);font-size:14px;font-weight:700;padding:11px;cursor:pointer;margin-top:10px;transition:all 0.15s}
+.auth-demo:hover{border-color:var(--bord2);color:var(--acc2)}
+.auth-or{text-align:center;color:var(--txt3);font-size:12px;margin:12px 0;position:relative}
+.auth-or::before{content:'';position:absolute;top:50%;left:0;right:0;height:1px;background:var(--bord)}
+.auth-or span{background:var(--bg1);padding:0 10px;position:relative}
+
+#app-screen{display:none;flex-direction:column;height:100vh}
+#app-screen.on{display:flex}
+
+#nav{height:60px;background:rgba(22,19,42,0.97);backdrop-filter:blur(20px);border-bottom:1px solid var(--bord);display:flex;align-items:center;padding:0 18px;gap:12px;flex-shrink:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:9px;cursor:pointer}
+.nav-logo-icon{width:36px;height:36px;border-radius:10px;background:var(--grd1);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.nav-logo-text{font-family:var(--font-h);font-size:16px;font-weight:900;background:var(--grd1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.nav-search{flex:1;max-width:400px;background:rgba(255,255,255,0.06);border:1px solid var(--bord);border-radius:12px;display:flex;align-items:center;gap:8px;padding:0 13px;height:38px}
+.nav-search input{background:none;border:none;outline:none;color:var(--txt);font-family:var(--font-b);font-size:14px;width:100%}
+.nav-search input::placeholder{color:var(--txt3)}
+.nav-sp{flex:1}
+.nav-ico{width:36px;height:36px;background:rgba(255,255,255,0.06);border:1px solid var(--bord);border-radius:10px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--txt2);transition:all 0.15s}
+.nav-ico:hover{border-color:var(--bord2);color:var(--acc2)}
+.nav-ava{width:36px;height:36px;border-radius:50%;background:var(--grd1);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:14px;font-weight:800;cursor:pointer;border:2px solid var(--acc2)}
+
+#layout{display:flex;flex:1;overflow:hidden}
+#sidebar{width:240px;flex-shrink:0;background:var(--bg1);border-right:1px solid var(--bord);display:flex;flex-direction:column;overflow-y:auto;padding:12px 10px;gap:2px}
+.s-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;font-size:14px;font-weight:600;color:var(--txt2);cursor:pointer;border:none;background:none;width:100%;text-align:left;transition:all 0.15s;font-family:var(--font-b)}
+.s-item svg{flex-shrink:0;width:18px;height:18px;opacity:0.7}
+.s-item:hover{background:var(--bg2);color:var(--txt)}
+.s-item.act{background:linear-gradient(135deg,rgba(139,92,246,0.2),rgba(236,72,153,0.08));color:var(--acc2);border:1px solid rgba(139,92,246,0.18)}
+.s-badge{margin-left:auto;background:var(--pink);color:#fff;font-size:10px;font-weight:800;padding:2px 7px;border-radius:20px}
+.sb-bottom{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:8px}
+.prem-card{background:linear-gradient(135deg,#4c1d95,#831843);border-radius:13px;padding:14px;border:1px solid rgba(139,92,246,0.3)}
+.prem-card h3{font-family:var(--font-h);font-size:14px;font-weight:900;margin-bottom:5px}
+.prem-card p{font-size:12px;color:rgba(255,255,255,0.7);line-height:1.4;margin-bottom:10px}
+.prem-btn{width:100%;background:var(--grd3);color:#fff;border:none;border-radius:9px;font-family:var(--font-h);font-size:13px;font-weight:800;padding:9px;cursor:pointer}
+.so-btn{width:100%;background:var(--bg2);border:1px solid var(--bord);border-radius:10px;color:var(--txt2);font-family:var(--font-b);font-size:13px;font-weight:600;padding:9px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all 0.15s}
+.so-btn:hover{border-color:var(--red);color:var(--red)}
+
+#main{flex:1;overflow-y:auto;background:var(--bg)}
+.page{display:none}.page.act{display:block;animation:fadeUp 0.2s ease}
+
+#rpanel{width:270px;flex-shrink:0;background:var(--bg1);border-left:1px solid var(--bord);overflow-y:auto;padding:16px 14px}
+.rp-hd{font-family:var(--font-h);font-size:11px;font-weight:900;letter-spacing:0.1em;text-transform:uppercase;color:var(--txt3);margin-bottom:10px}
+.rp-div{height:1px;background:var(--bord);margin:14px 0}
+.tr-row{display:flex;align-items:center;gap:9px;padding:8px;border-radius:10px;cursor:pointer;transition:background 0.15s;margin-bottom:2px}
+.tr-row:hover{background:var(--bg2)}
+.tr-rank{width:27px;height:27px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:12px;font-weight:900;flex-shrink:0}
+.t-hot{background:var(--grd3);color:#fff}.t-mid{background:var(--bg2);color:var(--txt2)}
+.tr-name{font-family:var(--font-h);font-size:13px;font-weight:800;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tr-pct{font-family:var(--font-h);font-size:11px;font-weight:800;color:var(--green)}
+
+.feed-wrap{max-width:620px;margin:0 auto;padding:20px 16px;display:flex;flex-direction:column;gap:12px}
+.compose{background:var(--card);border:1px solid var(--bord);border-radius:18px;padding:16px;transition:border-color 0.2s}
+.compose:focus-within{border-color:var(--bord2)}
+.cmp-top{display:flex;gap:11px;margin-bottom:12px}
+.c-ava{width:42px;height:42px;border-radius:50%;background:var(--grd1);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:17px;font-weight:800;flex-shrink:0;border:2px solid var(--acc2)}
+.c-txt{flex:1;background:rgba(255,255,255,0.05);border:1px solid var(--bord);border-radius:12px;padding:10px 13px;color:var(--txt);font-family:var(--font-b);font-size:14px;line-height:1.6;resize:none;height:70px;outline:none;transition:border-color 0.2s}
+.c-txt::placeholder{color:var(--txt3)}
+.c-txt:focus{border-color:var(--bord2)}
+.cmp-foot{display:flex;align-items:center;gap:8px}
+.c-sel{background:var(--bg2);border:1px solid var(--bord);border-radius:20px;color:var(--txt2);font-family:var(--font-b);font-size:12px;padding:6px 11px;cursor:pointer;outline:none}
+.c-post{margin-left:auto;background:var(--grd1);color:#fff;border:none;border-radius:11px;font-family:var(--font-h);font-size:14px;font-weight:800;padding:9px 22px;cursor:pointer;transition:opacity 0.15s}
+.c-post:hover{opacity:0.9}
+.c-post:disabled{opacity:0.5;cursor:not-allowed}
+
+.post{background:var(--card);border:1px solid var(--bord);border-radius:18px;padding:18px;transition:border-color 0.2s}
+.post:hover{border-color:rgba(139,92,246,0.15)}
+.post-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px}
+.post-ava{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:16px;font-weight:800;flex-shrink:0}
+.post-nm{font-family:var(--font-h);font-size:14px;font-weight:800}
+.post-hn{font-size:12px;color:var(--txt3)}
+.post-tm{font-size:11px;color:var(--txt3);margin-left:auto}
+.post-dl{background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:2px 5px;border-radius:6px;line-height:1;transition:all 0.15s}
+.post-dl:hover{background:rgba(239,68,68,0.1);color:var(--red)}
+.anime-pill{display:inline-block;background:linear-gradient(135deg,rgba(139,92,246,0.18),rgba(236,72,153,0.08));border:1px solid rgba(139,92,246,0.22);color:var(--acc2);font-size:11px;font-weight:700;padding:3px 11px;border-radius:20px;margin-bottom:10px;font-family:var(--font-h)}
+.post-body{font-size:14px;line-height:1.7;color:#d4d2f0;margin-bottom:12px}
+.post-acts{display:flex;gap:2px;padding-top:10px;border-top:1px solid var(--bord)}
+.pa{display:flex;align-items:center;gap:5px;background:none;border:none;color:var(--txt3);font-size:13px;font-weight:600;padding:6px 10px;border-radius:9px;cursor:pointer;font-family:var(--font-b);transition:all 0.15s}
+.pa svg{width:15px;height:15px}
+.pa:hover{background:rgba(255,255,255,0.05);color:var(--txt2)}
+.pa.liked{color:var(--pink)}.pa.liked:hover{background:rgba(236,72,153,0.1)}
+.pa.reposted{color:var(--green)}
+.cmts{margin-top:12px;padding-top:12px;border-top:1px solid var(--bord);display:none;flex-direction:column;gap:8px}
+.cmts.open{display:flex}
+.cm-row{display:flex;gap:8px}
+.cm-ava{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:11px;font-weight:800;flex-shrink:0}
+.cm-bub{flex:1;background:var(--bg2);border-radius:10px;padding:8px 12px}
+.cm-nm{font-family:var(--font-h);font-size:12px;font-weight:800;margin-bottom:3px}
+.cm-tx{font-size:13px;color:var(--txt2);line-height:1.4}
+.cm-inp-row{display:flex;gap:7px;align-items:center}
+.cm-inp{flex:1;background:var(--bg2);border:1px solid var(--bord);border-radius:10px;padding:8px 12px;color:var(--txt);font-family:var(--font-b);font-size:13px;outline:none;transition:border-color 0.2s}
+.cm-inp:focus{border-color:var(--bord2)}
+.cm-inp::placeholder{color:var(--txt3)}
+.cm-send{background:var(--acc);color:#fff;border:none;border-radius:9px;padding:8px 14px;font-family:var(--font-h);font-size:12px;font-weight:800;cursor:pointer}
+
+.disc-wrap{padding:26px 22px;max-width:900px;margin:0 auto}
+.disc-h{font-family:var(--font-h);font-size:28px;font-weight:900;letter-spacing:-0.03em;margin-bottom:4px;background:var(--grd1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.disc-sub{font-size:14px;color:var(--txt2);margin-bottom:20px}
+.filter-row{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:22px}
+.f-btn{background:var(--bg2);border:1px solid var(--bord);color:var(--txt2);font-size:12px;font-weight:700;padding:7px 16px;border-radius:20px;cursor:pointer;font-family:var(--font-h);transition:all 0.15s}
+.f-btn:hover{border-color:var(--bord2);color:var(--acc2)}
+.f-btn.act{background:var(--grd1);border-color:transparent;color:#fff}
+.shows-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(148px,1fr));gap:11px}
+.sh-card{background:var(--card);border:1px solid var(--bord);border-radius:14px;overflow:hidden;cursor:pointer;transition:all 0.2s}
+.sh-card:hover{border-color:rgba(139,92,246,0.4);transform:translateY(-3px)}
+.sh-thumb{height:100px;display:flex;align-items:center;justify-content:center;font-size:44px;background:var(--bg2)}
+.sh-body{padding:10px}
+.sh-title{font-family:var(--font-h);font-size:13px;font-weight:800;margin-bottom:5px}
+.sh-row{display:flex;justify-content:space-between;align-items:center}
+.sh-genre{font-size:11px;color:var(--txt3)}
+.sh-score{font-size:11px;font-weight:800;color:var(--gold);font-family:var(--font-h)}
+
+.wl-wrap{max-width:760px;margin:0 auto;padding:22px 18px}
+.wl-wrap h2{font-family:var(--font-h);font-size:22px;font-weight:900;margin-bottom:16px}
+.wl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:12px}
+.wl-card{background:var(--card);border:1px solid var(--bord);border-radius:14px;overflow:hidden;transition:all 0.2s}
+.wl-card:hover{border-color:rgba(139,92,246,0.35)}
+.wl-thumb{height:120px;display:flex;align-items:center;justify-content:center;font-size:50px;background:var(--bg2);position:relative}
+.wl-badge{position:absolute;top:6px;left:6px;font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;font-family:var(--font-h)}
+.wl-watching{background:rgba(16,185,129,0.2);color:var(--green)}
+.wl-completed{background:rgba(139,92,246,0.2);color:var(--acc2)}
+.wl-planned{background:rgba(107,104,144,0.3);color:var(--txt2)}
+.wl-info{padding:10px}
+.wl-title{font-family:var(--font-h);font-size:13px;font-weight:800;margin-bottom:3px}
+.wl-ep{font-size:11px;color:var(--txt3);margin-bottom:7px}
+.wl-bar{height:3px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-bottom:8px}
+.wl-prog{height:100%;border-radius:3px;background:var(--grd1)}
+.wl-btns{display:flex;gap:5px}
+.wl-rm{flex:1;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.2);border-radius:7px;color:var(--red);font-size:11px;font-weight:700;padding:5px;cursor:pointer;font-family:var(--font-h)}
+.wl-done{flex:1;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.2);border-radius:7px;color:var(--green);font-size:11px;font-weight:700;padding:5px;cursor:pointer;font-family:var(--font-h)}
+
+.prof-banner{height:180px;background:var(--bg2);position:relative;overflow:visible}
+.prof-banner-ov{position:absolute;inset:0;background:linear-gradient(135deg,rgba(109,40,217,0.4),rgba(190,24,93,0.3))}
+.prof-banner-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:16px;font-size:75px;opacity:0.05;flex-wrap:wrap;padding:16px}
+.prof-ava-ring{position:absolute;bottom:-48px;left:28px;width:96px;height:96px;border-radius:50%;background:var(--grd1);padding:4px;border:4px solid var(--bg);z-index:10}
+.prof-ava-in{width:100%;height:100%;border-radius:50%;background:var(--bg1);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:32px;font-weight:900}
+.prof-body{padding:68px 26px 26px}
+.prof-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+.prof-name{font-family:var(--font-h);font-size:22px;font-weight:900;letter-spacing:-0.02em}
+.prof-handle{font-size:13px;color:var(--txt3);margin-top:2px}
+.prof-bio{font-size:14px;color:var(--txt2);line-height:1.6;margin-bottom:14px}
+.edit-btn{background:var(--bg2);color:var(--txt2);border:1px solid var(--bord);border-radius:10px;font-family:var(--font-h);font-size:13px;font-weight:700;padding:8px 16px;cursor:pointer;transition:all 0.15s}
+.edit-btn:hover{border-color:var(--bord2);color:var(--acc2)}
+.prof-stats{display:grid;grid-template-columns:repeat(4,1fr);background:var(--card);border:1px solid var(--bord);border-radius:13px;overflow:hidden;margin-bottom:22px}
+.p-stat{padding:14px 10px;text-align:center;border-right:1px solid var(--bord)}
+.p-stat:last-child{border-right:none}
+.p-n{font-family:var(--font-h);font-size:20px;font-weight:900;background:var(--grd1);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.p-l{font-size:11px;color:var(--txt3);font-weight:600;margin-top:2px}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.72);backdrop-filter:blur(8px);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--bord2);border-radius:20px;padding:24px;width:100%;max-width:420px;position:relative;animation:fadeUp 0.2s ease}
+.modal-x{position:absolute;top:14px;right:14px;background:var(--bg3);border:none;border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--txt2);font-size:16px}
+.modal h2{font-family:var(--font-h);font-size:18px;font-weight:900;margin-bottom:16px}
+.m-lbl{font-size:11px;font-weight:700;color:var(--txt3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;font-family:var(--font-h)}
+.m-inp{width:100%;background:var(--bg3);border:1px solid var(--bord);border-radius:10px;padding:10px 13px;color:var(--txt);font-family:var(--font-b);font-size:14px;outline:none;margin-bottom:12px;transition:border-color 0.2s}
+.m-inp:focus{border-color:var(--bord2)}
+.m-ta{width:100%;background:var(--bg3);border:1px solid var(--bord);border-radius:10px;padding:10px 13px;color:var(--txt);font-family:var(--font-b);font-size:14px;outline:none;resize:none;height:74px;margin-bottom:12px;transition:border-color 0.2s}
+.m-ta:focus{border-color:var(--bord2)}
+.m-btn{width:100%;background:var(--grd1);color:#fff;border:none;border-radius:10px;font-family:var(--font-h);font-size:14px;font-weight:900;padding:11px;cursor:pointer;transition:opacity 0.15s}
+.m-btn:hover{opacity:0.9}
+
+.toast{position:fixed;bottom:22px;right:22px;background:var(--bg2);border:1px solid var(--bord2);border-radius:12px;padding:11px 16px;font-size:13px;font-weight:600;color:var(--txt);z-index:9999;animation:fadeUp 0.3s ease;box-shadow:0 8px 24px rgba(0,0,0,0.4)}
+.loading{display:flex;align-items:center;justify-content:center;padding:44px;color:var(--txt3);font-size:14px;gap:9px}
+.spinner{width:18px;height:18px;border:2px solid var(--bord);border-top-color:var(--acc2);border-radius:50%;animation:spin 0.8s linear infinite}
+.empty{text-align:center;padding:44px 20px;color:var(--txt3)}
+.empty-e{font-size:44px;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<div id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">
+      <div class="auth-icon">⛩️</div>
+      <div class="auth-title">ANIME PORTAL</div>
+      <div class="auth-sub">The first ever anime social media</div>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab act" id="tab-in" onclick="switchTab('in')">Sign In</button>
+      <button class="auth-tab" id="tab-up" onclick="switchTab('up')">Sign Up</button>
+    </div>
+    <div class="auth-err" id="auth-err"></div>
+    <div id="form-in">
+      <div class="auth-lbl">Email</div>
+      <input class="auth-inp" id="in-email" type="email" placeholder="you@example.com">
+      <div class="auth-lbl">Password</div>
+      <input class="auth-inp" id="in-pw" type="password" placeholder="••••••••" onkeydown="if(event.key==='Enter')login()">
+      <button class="auth-btn" id="in-btn" onclick="login()">Sign In</button>
+    </div>
+    <div id="form-up" style="display:none">
+      <div class="auth-lbl">Display Name</div>
+      <input class="auth-inp" id="up-name" type="text" placeholder="Your name">
+      <div class="auth-lbl">Username</div>
+      <input class="auth-inp" id="up-user" type="text" placeholder="e.g. animefan99">
+      <div class="auth-lbl">Email</div>
+      <input class="auth-inp" id="up-email" type="email" placeholder="you@example.com">
+      <div class="auth-lbl">Password</div>
+      <input class="auth-inp" id="up-pw" type="password" placeholder="At least 6 characters" onkeydown="if(event.key==='Enter')signup()">
+      <button class="auth-btn" id="up-btn" onclick="signup()">Create Account</button>
+    </div>
+    <div class="auth-or"><span>or</span></div>
+    <button class="auth-demo" onclick="demo()">👀 Try Demo — no account needed</button>
+  </div>
+</div>
+
+<div id="app-screen">
+  <nav id="nav">
+    <div class="nav-logo" onclick="go('feed')">
+      <div class="nav-logo-icon">⛩️</div>
+      <div class="nav-logo-text">ANIME PORTAL</div>
+    </div>
+    <div class="nav-search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" placeholder="Search anime, posts..." onkeydown="if(event.key==='Enter')go('discover')">
+    </div>
+    <div class="nav-sp"></div>
+    <div style="display:flex;align-items:center;gap:7px">
+      <div class="nav-ico" onclick="go('feed')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="nav-ico" onclick="go('discover')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg></div>
+      <div class="nav-ico" onclick="go('watchlist')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="nav-ava" id="nav-ava" onclick="go('profile')">?</div>
+    </div>
+  </nav>
+  <div id="layout">
+    <aside id="sidebar">
+      <button class="s-item act" id="sb-feed" onclick="go('feed')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Home</button>
+      <button class="s-item" id="sb-discover" onclick="go('discover')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>Explore</button>
+      <button class="s-item" id="sb-watchlist" onclick="go('watchlist')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m19 21-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>Watchlist<span class="s-badge" id="wl-badge">0</span></button>
+      <button class="s-item" id="sb-profile" onclick="go('profile')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Profile</button>
+      <div class="sb-bottom">
+        <div class="prem-card">
+          <h3>⚡ Go Premium</h3>
+          <p>Unlock badges, ad-free, and early episode alerts!</p>
+          <button class="prem-btn" onclick="toast('Premium coming soon! 🚀')">Upgrade Now</button>
+        </div>
+        <button class="so-btn" onclick="signout()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out
+        </button>
+      </div>
+    </aside>
+    <main id="main">
+      <div class="page act" id="page-feed">
+        <div class="feed-wrap">
+          <div class="compose">
+            <div class="cmp-top">
+              <div class="c-ava" id="c-ava">?</div>
+              <textarea class="c-txt" id="c-txt" placeholder="What anime are you watching? Share your take..."></textarea>
+            </div>
+            <div class="cmp-foot">
+              <select class="c-sel" id="c-anime">
+                <option value="">Tag an anime...</option>
+                <option>Demon Slayer</option><option>Frieren</option><option>One Piece</option>
+                <option>Jujutsu Kaisen</option><option>Death Note</option><option>Evangelion</option>
+                <option>Kaguya-sama</option><option>Attack on Titan</option><option>Chainsaw Man</option>
+                <option>My Hero Academia</option><option>Hunter x Hunter</option><option>Fullmetal Alchemist</option>
+                <option>Naruto</option><option>Dragon Ball Z</option><option>Bleach</option>
+                <option>Steins;Gate</option><option>Re:Zero</option><option>Vinland Saga</option>
+                <option>Haikyuu</option><option>Mob Psycho 100</option><option>Tokyo Ghoul</option>
+                <option>Violet Evergarden</option><option>Your Lie in April</option><option>Clannad</option>
+                <option>Toradora</option><option>No Game No Life</option><option>Made in Abyss</option>
+                <option>Konosuba</option><option>Spy x Family</option><option>Sword Art Online</option>
+              </select>
+              <button class="c-post" id="c-post-btn" onclick="doPost()">Post ⚡</button>
+            </div>
+          </div>
+          <div id="feed-list"><div class="loading"><div class="spinner"></div>Loading posts...</div></div>
+        </div>
+      </div>
+      <div class="page" id="page-discover">
+        <div class="disc-wrap">
+          <div class="disc-h">Discover Anime</div>
+          <div class="disc-sub">Find your next obsession</div>
+          <div class="filter-row">
+            <button class="f-btn act" onclick="filterShows(this,'all')">All</button>
+            <button class="f-btn" onclick="filterShows(this,'action')">Action</button>
+            <button class="f-btn" onclick="filterShows(this,'fantasy')">Fantasy</button>
+            <button class="f-btn" onclick="filterShows(this,'romance')">Romance</button>
+            <button class="f-btn" onclick="filterShows(this,'thriller')">Thriller</button>
+            <button class="f-btn" onclick="filterShows(this,'scifi')">Sci-fi</button>
+            <button class="f-btn" onclick="filterShows(this,'comedy')">Comedy</button>
+          </div>
+          <div class="shows-grid" id="shows-grid"></div>
+        </div>
+      </div>
+      <div class="page" id="page-watchlist">
+        <div class="wl-wrap">
+          <h2>My Watchlist</h2>
+          <div id="wl-list"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+        </div>
+      </div>
+      <div class="page" id="page-profile">
+        <div>
+          <div class="prof-banner">
+            <div class="prof-banner-ov"></div>
+            <div class="prof-banner-bg">✨🏴‍☠️⚔️🧠🤖💜⚡</div>
+            <div class="prof-ava-ring"><div class="prof-ava-in" id="prof-ava">?</div></div>
+          </div>
+          <div class="prof-body">
+            <div class="prof-top">
+              <div>
+                <div class="prof-name" id="prof-name">Loading...</div>
+                <div class="prof-handle" id="prof-handle">@...</div>
+              </div>
+              <button class="edit-btn" onclick="openEdit()">Edit Profile</button>
+            </div>
+            <div class="prof-bio" id="prof-bio"></div>
+            <div class="prof-stats">
+              <div class="p-stat"><div class="p-n" id="st-following">0</div><div class="p-l">Following</div></div>
+              <div class="p-stat"><div class="p-n" id="st-followers">0</div><div class="p-l">Followers</div></div>
+              <div class="p-stat"><div class="p-n" id="st-posts">0</div><div class="p-l">Posts</div></div>
+              <div class="p-stat"><div class="p-n" id="st-watching">0</div><div class="p-l">Watching</div></div>
+            </div>
+            <div id="prof-posts"><div class="loading"><div class="spinner"></div>Loading...</div></div>
+          </div>
+        </div>
+      </div>
+    </main>
+    <aside id="rpanel">
+      <div class="rp-hd">🔥 Trending Now</div>
+      <div id="trending-list">
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-hot">🔥</div><div class="tr-name">Demon Slayer</div><div class="tr-pct">top</div></div>
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-hot">2</div><div class="tr-name">Frieren</div><div class="tr-pct">top</div></div>
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-mid">3</div><div class="tr-name">One Piece</div><div class="tr-pct">top</div></div>
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-mid">4</div><div class="tr-name">JJK</div><div class="tr-pct">top</div></div>
+        <div class="tr-row" onclick="go('discover')"><div class="tr-rank t-mid">5</div><div class="tr-name">AOT</div><div class="tr-pct">top</div></div>
+      </div>
+      <div class="rp-div"></div>
+      <div class="rp-hd">👥 Who To Follow</div>
+      <div id="wtf"></div>
+      <div class="rp-div"></div>
+      <div style="font-size:11px;color:var(--txt3);line-height:1.8">Anime Portal © 2026</div>
+    </aside>
+  </div>
+</div>
+
+<div class="overlay" id="edit-overlay" onclick="if(event.target===this)closeEdit()">
+  <div class="modal">
+    <button class="modal-x" onclick="closeEdit()">✕</button>
+    <h2>Edit Profile</h2>
+    <div class="m-lbl">Display Name</div>
+    <input class="m-inp" id="ep-name" placeholder="Your name">
+    <div class="m-lbl">Bio</div>
+    <textarea class="m-ta" id="ep-bio" placeholder="Tell the world your anime taste..."></textarea>
+    <button class="m-btn" onclick="saveProfile()">Save Profile</button>
+  </div>
+</div>
+
+<script>
+var SBC = window.supabase.createClient(
+  'https://dvlmnpiwcxwrztxgmgqv.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR2bG1ucGl3Y3h3cnp0eGdtZ3F2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg0MDUzMzcsImV4cCI6MjA5Mzk4MTMzN30.BbSCpu26r92bIAcFXhv_GCaeJ54fsyTVGtjeSK670X4'
+);
+
+var USER=null, PROFILE=null, IS_DEMO=false, POSTS=[], WL=[];
+
+var DEMO_PROFILE={id:'demo',username:'demo_user',display_name:'Demo User',bio:'Exploring Anime Portal! 👀',avatar_letter:'D',followers_count:12,following_count:34,posts_count:3};
+var DEMO_POSTS=[
+  {id:'d1',user_id:'u1',body:'Welcome to Anime Portal! Sign up to post for real 🎌',anime_tag:'Frieren',likes_count:42,comments_count:8,reposts_count:5,created_at:new Date().toISOString(),profiles:{display_name:'Anime Portal',username:'animeportal',avatar_letter:'A'},liked:false,reposted:false,cmts:[]},
+  {id:'d2',user_id:'u2',body:'Just finished Demon Slayer S3 and I am NOT okay. That finale was insane 🔥',anime_tag:'Demon Slayer',likes_count:891,comments_count:124,reposts_count:67,created_at:new Date(Date.now()-3600000).toISOString(),profiles:{display_name:'SakuraFan',username:'sakurafan99',avatar_letter:'S'},liked:false,reposted:false,cmts:[]},
+  {id:'d3',user_id:'u3',body:'Hot take: Frieren is the best anime of the decade. Change my mind.',anime_tag:'Frieren',likes_count:2100,comments_count:312,reposts_count:203,created_at:new Date(Date.now()-7200000).toISOString(),profiles:{display_name:'NarutoFanatic',username:'narutofan_og',avatar_letter:'N'},liked:false,reposted:false,cmts:[]},
+];
+var DEMO_WL=[
+  {id:'w1',anime_title:'Frieren',anime_emoji:'✨',anime_genre:'fantasy',episode:22,total_episodes:28,status:'watching'},
+  {id:'w2',anime_title:'One Piece',anime_emoji:'🏴‍☠️',anime_genre:'action',episode:1119,total_episodes:0,status:'watching'},
+  {id:'w3',anime_title:'Death Note',anime_emoji:'🧠',anime_genre:'thriller',episode:37,total_episodes:37,status:'completed'},
+];
+var SHOWS=[
+  {title:'Demon Slayer',emoji:'⚔️',genre:'action',score:'9.0',bg:'linear-gradient(135deg,#1a0510,#3d0a20)'},
+  {title:'One Piece',emoji:'🏴‍☠️',genre:'action',score:'9.5',bg:'linear-gradient(135deg,#051505,#0d3010)'},
+  {title:'Frieren',emoji:'✨',genre:'fantasy',score:'9.8',bg:'linear-gradient(135deg,#0a0520,#200a40)'},
+  {title:'Death Note',emoji:'🧠',genre:'thriller',score:'8.9',bg:'linear-gradient(135deg,#100515,#200a30)'},
+  {title:'Evangelion',emoji:'🤖',genre:'scifi',score:'9.1',bg:'linear-gradient(135deg,#050f20,#0a1540)'},
+  {title:'Kaguya-sama',emoji:'💜',genre:'romance',score:'8.8',bg:'linear-gradient(135deg,#1a0515,#350a28)'},
+  {title:'Jujutsu Kaisen',emoji:'⚡',genre:'action',score:'9.2',bg:'linear-gradient(135deg,#050a20,#0a1535)'},
+  {title:'Made in Abyss',emoji:'🗺️',genre:'fantasy',score:'9.3',bg:'linear-gradient(135deg,#0a0f20,#101a35)'},
+  {title:'Konosuba',emoji:'😂',genre:'comedy',score:'8.7',bg:'linear-gradient(135deg,#150f05,#2a1e0a)'},
+  {title:'My Hero Academia',emoji:'🦸',genre:'action',score:'8.6',bg:'linear-gradient(135deg,#150005,#300010)'},
+  {title:'Chainsaw Man',emoji:'🔪',genre:'action',score:'8.8',bg:'linear-gradient(135deg,#200005,#400010)'},
+  {title:'Spy x Family',emoji:'👨‍👩‍👧',genre:'comedy',score:'8.7',bg:'linear-gradient(135deg,#0a1020,#0f1830)'},
+  {title:'Attack on Titan',emoji:'⚡',genre:'action',score:'9.4',bg:'linear-gradient(135deg,#1a1000,#3d2800)'},
+  {title:'Hunter x Hunter',emoji:'🎯',genre:'action',score:'9.4',bg:'linear-gradient(135deg,#002010,#005030)'},
+  {title:'Fullmetal Alchemist',emoji:'⚗️',genre:'action',score:'9.7',bg:'linear-gradient(135deg,#1a0a00,#3d2000)'},
+  {title:'Steins;Gate',emoji:'🕰️',genre:'scifi',score:'9.2',bg:'linear-gradient(135deg,#001520,#003040)'},
+  {title:'Violet Evergarden',emoji:'💌',genre:'fantasy',score:'9.0',bg:'linear-gradient(135deg,#001030,#002060)'},
+  {title:'Your Lie in April',emoji:'🎹',genre:'romance',score:'9.0',bg:'linear-gradient(135deg,#100020,#200040)'},
+  {title:'Mob Psycho 100',emoji:'🧬',genre:'action',score:'9.1',bg:'linear-gradient(135deg,#001020,#002040)'},
+  {title:'Haikyuu',emoji:'🏐',genre:'action',score:'9.0',bg:'linear-gradient(135deg,#001a10,#003020)'},
+  {title:'Re:Zero',emoji:'🌸',genre:'fantasy',score:'8.9',bg:'linear-gradient(135deg,#150020,#300040)'},
+  {title:'Vinland Saga',emoji:'🪓',genre:'action',score:'9.2',bg:'linear-gradient(135deg,#1a1000,#402800)'},
+  {title:'Mushishi',emoji:'🍃',genre:'fantasy',score:'9.1',bg:'linear-gradient(135deg,#001500,#003000)'},
+  {title:'Neon Genesis',emoji:'🔮',genre:'scifi',score:'8.9',bg:'linear-gradient(135deg,#100020,#200050)'},
+  {title:'Tokyo Ghoul',emoji:'👺',genre:'thriller',score:'8.4',bg:'linear-gradient(135deg,#200000,#500000)'},
+  {title:'Dragon Ball Z',emoji:'🔥',genre:'action',score:'8.8',bg:'linear-gradient(135deg,#200800,#501500)'},
+  {title:'Naruto',emoji:'🍥',genre:'action',score:'8.6',bg:'linear-gradient(135deg,#201000,#503000)'},
+  {title:'Bleach',emoji:'⚔️',genre:'action',score:'8.5',bg:'linear-gradient(135deg,#001020,#002050)'},
+  {title:'Sword Art Online',emoji:'🗡️',genre:'scifi',score:'8.0',bg:'linear-gradient(135deg,#000a20,#001040)'},
+  {title:'No Game No Life',emoji:'♟️',genre:'fantasy',score:'8.6',bg:'linear-gradient(135deg,#200015,#500030)'},
+  {title:'Toradora',emoji:'🐯',genre:'romance',score:'8.8',bg:'linear-gradient(135deg,#200010,#500025)'},
+  {title:'Clannad',emoji:'💙',genre:'romance',score:'9.0',bg:'linear-gradient(135deg,#000020,#000050)'},
+];
+var COLORS=['linear-gradient(135deg,#7c3aed,#be185d)','linear-gradient(135deg,#0e7490,#1d4ed8)','linear-gradient(135deg,#b45309,#dc2626)','linear-gradient(135deg,#065f46,#1d4ed8)','linear-gradient(135deg,#4c1d95,#6d28d9)'];
+
+function getColor(s){var h=0;for(var i=0;i<(s||'a').length;i++)h=((h<<5)-h)+(s||'a').charCodeAt(i);return COLORS[Math.abs(h)%COLORS.length];}
+function fmt(n){return n>=1000?(n/1000).toFixed(1)+'k':String(n||0);}
+function ago(ts){var d=(Date.now()-new Date(ts))/1000;if(d<60)return 'just now';if(d<3600)return Math.floor(d/60)+'m ago';if(d<86400)return Math.floor(d/3600)+'h ago';return Math.floor(d/86400)+'d ago';}
+function cap(s){return s?s[0].toUpperCase()+s.slice(1):'';}
+
+function toast(msg){
+  var t=document.createElement('div');
+  t.className='toast';t.textContent=msg;
+  document.body.appendChild(t);
+  setTimeout(function(){t.style.opacity='0';t.style.transition='opacity 0.3s';setTimeout(function(){t.remove();},300);},3000);
+}
+
+function switchTab(tab){
+  document.getElementById('form-in').style.display=tab==='in'?'block':'none';
+  document.getElementById('form-up').style.display=tab==='up'?'block':'none';
+  document.getElementById('tab-in').classList.toggle('act',tab==='in');
+  document.getElementById('tab-up').classList.toggle('act',tab==='up');
+  document.getElementById('auth-err').classList.remove('show');
+}
+
+function showErr(msg){var e=document.getElementById('auth-err');e.textContent=msg;e.classList.add('show');}
+
+function login(){
+  var email=document.getElementById('in-email').value.trim();
+  var pw=document.getElementById('in-pw').value;
+  if(!email||!pw){showErr('Fill in both fields.');return;}
+  var btn=document.getElementById('in-btn');
+  btn.disabled=true;btn.textContent='Signing in...';
+  SBC.auth.signInWithPassword({email:email,password:pw}).then(function(res){
+    btn.disabled=false;btn.textContent='Sign In';
+    if(res.error){showErr(res.error.message);return;}
+    USER=res.data.user;
+    SBC.from('profiles').select('*').eq('id',USER.id).single().then(function(r){
+      PROFILE=r.data;
+      SBC.from('watchlist').select('*').eq('user_id',USER.id).then(function(wr){
+        WL=wr.data||[];
+        enterApp();
+      });
+    });
+  });
+}
+
+function signup(){
+  var name=document.getElementById('up-name').value.trim();
+  var username=document.getElementById('up-user').value.trim().toLowerCase().replace(/\s+/g,'');
+  var email=document.getElementById('up-email').value.trim();
+  var pw=document.getElementById('up-pw').value;
+  if(!name||!username||!email||!pw){showErr('Fill in all fields.');return;}
+  if(username.length<3){showErr('Username needs 3+ characters.');return;}
+  if(pw.length<6){showErr('Password needs 6+ characters.');return;}
+  var btn=document.getElementById('up-btn');
+  btn.disabled=true;btn.textContent='Creating account...';
+  SBC.auth.signUp({email:email,password:pw,options:{data:{display_name:name,username:username}}}).then(function(res){
+    btn.disabled=false;btn.textContent='Create Account';
+    if(res.error){showErr(res.error.message);return;}
+    toast('Account created! Sign in now 🎉');
+    switchTab('in');
+  });
+}
+
+function demo(){
+  IS_DEMO=true;USER={id:'demo'};PROFILE=DEMO_PROFILE;
+  POSTS=DEMO_POSTS.map(function(p){return Object.assign({},p,{cmts:[]});});
+  WL=DEMO_WL.slice();
+  enterApp();
+}
+
+function signout(){
+  if(!IS_DEMO)SBC.auth.signOut();
+  IS_DEMO=false;USER=null;PROFILE=null;POSTS=[];WL=[];
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app-screen').classList.remove('on');
+  toast('Signed out 👋');
+}
+
+function enterApp(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app-screen').classList.add('on');
+  var letter=PROFILE&&PROFILE.avatar_letter?PROFILE.avatar_letter:'?';
+  document.getElementById('nav-ava').textContent=letter;
+  document.getElementById('c-ava').textContent=letter;
+  renderDiscover();renderWTF();loadFeed();loadTrending();
+}
+
+function go(page){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('act');});
+  document.querySelectorAll('.s-item').forEach(function(b){b.classList.remove('act');});
+  document.getElementById('page-'+page).classList.add('act');
+  var sb=document.getElementById('sb-'+page);if(sb)sb.classList.add('act');
+  document.getElementById('main').scrollTop=0;
+  if(page==='feed')loadFeed();
+  if(page==='watchlist')renderWatchlist();
+  if(page==='profile')renderProfile();
+}
+
+function loadFeed(){
+  if(IS_DEMO){renderFeed();return;}
+  document.getElementById('feed-list').innerHTML='<div class="loading"><div class="spinner"></div>Loading posts...</div>';
+  SBC.from('posts').select('*,profiles(display_name,username,avatar_letter)').order('created_at',{ascending:false}).limit(40).then(function(res){
+    if(res.error){document.getElementById('feed-list').innerHTML='<div class="empty"><div class="empty-e">⚠️</div><p>Could not load posts.</p></div>';return;}
+    var posts=res.data||[];
+    SBC.from('likes').select('post_id').eq('user_id',USER.id).then(function(lr){
+      var liked=new Set((lr.data||[]).map(function(l){return l.post_id;}));
+      // Load comments for all posts
+      var postIds=posts.map(function(p){return p.id;});
+      if(!postIds.length){POSTS=[];renderFeed();return;}
+      SBC.from('comments').select('*,profiles(display_name,username,avatar_letter)').in('post_id',postIds).order('created_at',{ascending:true}).then(function(cr){
+        var cmtMap={};
+        (cr.data||[]).forEach(function(c){
+          if(!cmtMap[c.post_id])cmtMap[c.post_id]=[];
+          var pr=c.profiles||{};
+          cmtMap[c.post_id].push({name:pr.display_name||'User',handle:pr.username||'user',letter:pr.avatar_letter||'?',text:c.body});
+        });
+        POSTS=posts.map(function(p){return Object.assign({},p,{liked:liked.has(p.id),reposted:false,cmts:cmtMap[p.id]||[]});});
+        renderFeed();
+      });
+    });
+  });
+}
+
+function renderFeed(){
+  var el=document.getElementById('feed-list');
+  if(!POSTS.length){el.innerHTML='<div class="empty"><div class="empty-e">🎌</div><p>No posts yet. Be the first!</p></div>';return;}
+  el.innerHTML=POSTS.map(function(p,i){return postHTML(p,i);}).join('');
+}
+
+function postHTML(p,i){
+  var pr=p.profiles||{};
+  var name=pr.display_name||'User';
+  var handle=pr.username||'user';
+  var letter=pr.avatar_letter||name[0]||'?';
+  var color=getColor(handle);
+  var isOwn=p.user_id===USER.id||(IS_DEMO&&p.user_id==='demo');
+  return '<div class="post" id="post-'+i+'">'
+    +'<div class="post-hd">'
+    +'<div class="post-ava" style="background:'+color+'">'+letter+'</div>'
+    +'<div style="flex:1"><div class="post-nm">'+name+'</div><div class="post-hn">@'+handle+'</div></div>'
+    +'<div class="post-tm">'+ago(p.created_at)+'</div>'
+    +(isOwn?'<button class="post-dl" onclick="delPost(\''+p.id+'\','+i+')" title="Delete">🗑</button>':'')
+    +'</div>'
+    +(p.anime_tag?'<div class="anime-pill">📺 '+p.anime_tag+'</div>':'')
+    +'<div class="post-body">'+p.body+'</div>'
+    +'<div class="post-acts">'
+    +'<button class="pa'+(p.liked?' liked':'')+'" onclick="doLike('+i+')">'
+    +'<svg viewBox="0 0 24 24" fill="'+(p.liked?'currentColor':'none')+'" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>'
+    +'<span id="lk-'+i+'">'+fmt(p.likes_count)+'</span></button>'
+    +'<button class="pa" onclick="toggleCmts('+i+')">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
+    +'<span id="cm-'+i+'">'+fmt(p.comments_count)+'</span></button>'
+    +'<button class="pa'+(p.reposted?' reposted':'')+'" onclick="doRepost('+i+')">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>'
+    +'<span id="rp-'+i+'">'+fmt(p.reposts_count)+'</span></button>'
+    +'<button class="pa" onclick="toast(\'Link copied! 🔗\')">'
+    +'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>Share</button>'
+    +'</div>'
+    +'<div class="cmts" id="cmts-'+i+'">'
+    +(p.cmts||[]).map(function(c){return '<div class="cm-row"><div class="cm-ava" style="background:'+getColor(c.handle)+'">'+c.letter+'</div><div class="cm-bub"><div class="cm-nm">'+c.name+'</div><div class="cm-tx">'+c.text+'</div></div></div>';}).join('')
+    +'<div class="cm-inp-row">'
+    +'<div class="cm-ava" style="background:'+getColor(PROFILE&&PROFILE.username?PROFILE.username:'')+'">'+((PROFILE&&PROFILE.avatar_letter)||'?')+'</div>'
+    +'<input class="cm-inp" placeholder="Add a comment..." onkeydown="if(event.key===\'Enter\')addCmt('+i+',this)">'
+    +'<button class="cm-send" onclick="addCmt('+i+',this.previousElementSibling)">Send</button>'
+    +'</div></div></div>';
+}
+
+function doPost(){
+  var body=document.getElementById('c-txt').value.trim();
+  if(!body){toast('Write something first! ✏️');return;}
+  var anime_tag=document.getElementById('c-anime').value||null;
+  var btn=document.getElementById('c-post-btn');
+  btn.disabled=true;btn.textContent='Posting...';
+  if(IS_DEMO){
+    POSTS.unshift({id:'d'+Date.now(),user_id:'demo',body:body,anime_tag:anime_tag,likes_count:0,comments_count:0,reposts_count:0,created_at:new Date().toISOString(),profiles:{display_name:PROFILE.display_name,username:PROFILE.username,avatar_letter:PROFILE.avatar_letter},liked:false,reposted:false,cmts:[]});
+    document.getElementById('c-txt').value='';document.getElementById('c-anime').value='';
+    btn.disabled=false;btn.textContent='Post ⚡';renderFeed();toast('Posted! 🚀 (Demo)');return;
+  }
+  SBC.from('posts').insert({user_id:USER.id,body:body,anime_tag:anime_tag}).select('*,profiles(display_name,username,avatar_letter)').single().then(function(res){
+    btn.disabled=false;btn.textContent='Post ⚡';
+    if(res.error){toast('Failed to post. Try again!');return;}
+    document.getElementById('c-txt').value='';document.getElementById('c-anime').value='';
+    POSTS.unshift(Object.assign({},res.data,{liked:false,reposted:false,cmts:[]}));
+    renderFeed();toast('Posted! 🚀');
+  });
+}
+
+function doLike(i){
+  var p=POSTS[i];
+  if(IS_DEMO){p.liked=!p.liked;p.likes_count+=(p.liked?1:-1);document.getElementById('lk-'+i).textContent=fmt(p.likes_count);var btn=document.querySelector('#post-'+i+' .pa');if(btn){btn.classList.toggle('liked',p.liked);btn.querySelector('svg').setAttribute('fill',p.liked?'currentColor':'none');}return;}
+  if(p.liked){
+    SBC.from('likes').delete().eq('user_id',USER.id).eq('post_id',p.id).then(function(){});
+    p.liked=false;p.likes_count=Math.max(0,p.likes_count-1);
+  }else{
+    SBC.from('likes').insert({user_id:USER.id,post_id:p.id}).then(function(){});
+    p.liked=true;p.likes_count++;
+  }
+  document.getElementById('lk-'+i).textContent=fmt(p.likes_count);
+  var btn=document.querySelector('#post-'+i+' .pa');
+  if(btn){btn.classList.toggle('liked',p.liked);btn.querySelector('svg').setAttribute('fill',p.liked?'currentColor':'none');}
+}
+
+function doRepost(i){
+  var p=POSTS[i];p.reposted=!p.reposted;p.reposts_count+=(p.reposted?1:-1);
+  document.getElementById('rp-'+i).textContent=fmt(p.reposts_count);
+  var btns=document.querySelectorAll('#post-'+i+' .pa');if(btns[2])btns[2].classList.toggle('reposted',p.reposted);
+  toast(p.reposted?'Reposted! 🔁':'Unreposted');
+}
+
+function toggleCmts(i){document.getElementById('cmts-'+i).classList.toggle('open');}
+
+function addCmt(i,input){
+  var text=input.value.trim();if(!text)return;
+  var p=POSTS[i];if(!p.cmts)p.cmts=[];
+  var cmtData={name:PROFILE.display_name,handle:PROFILE.username,letter:PROFILE.avatar_letter,text:text};
+  if(!IS_DEMO){
+    // Save comment to DB
+    SBC.from('comments').insert({user_id:USER.id,post_id:p.id,body:text}).then(function(res){
+      if(res.error){toast('Could not save comment. Try again!');return;}
+      // Also update the comment count on the post
+      SBC.from('posts').update({comments_count:p.comments_count}).eq('id',p.id).then(function(){});
+      toast('Comment posted! 💬');
+    });
+  } else {
+    toast('Comment posted! 💬');
+  }
+  p.cmts.push(cmtData);
+  p.comments_count++;
+  input.value='';
+  renderFeed();
+  setTimeout(function(){document.getElementById('cmts-'+i).classList.add('open');},50);
+}
+
+function delPost(id,i){
+  if(!confirm('Delete this post?'))return;
+  if(!IS_DEMO)SBC.from('posts').delete().eq('id',id).eq('user_id',USER.id).then(function(){});
+  POSTS.splice(i,1);renderFeed();toast('Post deleted');
+}
+
+function renderDiscover(){
+  document.getElementById('shows-grid').innerHTML=SHOWS.map(function(s){
+    return '<div class="sh-card" data-g="'+s.genre+'" onclick="addToWL(\''+s.title+'\',\''+s.emoji+'\',\''+s.genre+'\')"><div class="sh-thumb" style="background:'+s.bg+'">'+s.emoji+'</div><div class="sh-body"><div class="sh-title">'+s.title+'</div><div class="sh-row"><span class="sh-genre">'+cap(s.genre)+'</span><span class="sh-score">★ '+s.score+'</span></div></div></div>';
+  }).join('');
+}
+
+function filterShows(btn,genre){
+  document.querySelectorAll('.filter-row .f-btn').forEach(function(b){b.classList.remove('act');});
+  btn.classList.add('act');
+  document.querySelectorAll('#shows-grid .sh-card').forEach(function(c){c.style.display=(genre==='all'||c.dataset.g===genre)?'':'none';});
+}
+
+function addToWL(title,emoji,genre){
+  if(WL.some(function(w){return w.anime_title===title;})){toast(title+' is already in your watchlist!');return;}
+  if(!IS_DEMO){
+    SBC.from('watchlist').insert({user_id:USER.id,anime_title:title,anime_emoji:emoji,anime_genre:genre}).then(function(){});
+  }
+  WL.push({id:'w'+Date.now(),anime_title:title,anime_emoji:emoji,anime_genre:genre,episode:1,total_episodes:0,status:'watching'});
+  document.getElementById('wl-badge').textContent=WL.length;
+  toast('Added '+title+' to watchlist! 📚');
+}
+
+function renderWatchlist(){
+  document.getElementById('wl-badge').textContent=WL.length;
+  var el=document.getElementById('wl-list');
+  if(!WL.length){el.innerHTML='<div class="empty"><div class="empty-e">📚</div><p>Your watchlist is empty.<br>Go to Explore and click a show!</p></div>';return;}
+  el.innerHTML='<div class="wl-grid">'+WL.map(function(w,i){
+    var pct=w.total_episodes?Math.round(w.episode/w.total_episodes*100):0;
+    return '<div class="wl-card"><div class="wl-thumb" style="background:var(--bg2)">'+w.anime_emoji+'<div class="wl-badge wl-'+w.status+'">'+cap(w.status)+'</div></div>'
+    +'<div class="wl-info"><div class="wl-title">'+w.anime_title+'</div><div class="wl-ep">Ep '+w.episode+(w.total_episodes?' / '+w.total_episodes:'')+'</div>'
+    +(w.total_episodes?'<div class="wl-bar"><div class="wl-prog" style="width:'+pct+'%"></div></div>':'')
+    +'<div class="wl-btns"><button class="wl-rm" onclick="removeWL(\''+w.id+'\','+i+')">Remove</button><button class="wl-done" onclick="doneWL(\''+w.id+'\','+i+')">'+(w.status==='completed'?'Rewatch':'Done ✓')+'</button></div></div></div>';
+  }).join('')+'</div>';
+}
+
+function removeWL(id,i){
+  if(!IS_DEMO)SBC.from('watchlist').delete().eq('id',id).then(function(){});
+  WL.splice(i,1);renderWatchlist();toast('Removed from watchlist');
+}
+
+function doneWL(id,i){
+  var ns=WL[i].status==='completed'?'watching':'completed';
+  if(!IS_DEMO)SBC.from('watchlist').update({status:ns}).eq('id',id).then(function(){});
+  WL[i].status=ns;renderWatchlist();toast(ns==='completed'?'Marked complete! 🎉':'Back to watching!');
+}
+
+function renderProfile(){
+  if(!PROFILE)return;
+  // Reload watchlist count from DB
+  if(!IS_DEMO){
+    SBC.from('watchlist').select('*').eq('user_id',USER.id).then(function(wr){
+      WL=wr.data||[];
+      document.getElementById('st-watching').textContent=WL.filter(function(w){return w.status==='watching';}).length;
+      document.getElementById('wl-badge').textContent=WL.length;
+    });
+  }
+  document.getElementById('prof-ava').textContent=PROFILE.avatar_letter||'?';
+  document.getElementById('prof-name').textContent=PROFILE.display_name||'User';
+  document.getElementById('prof-handle').textContent='@'+(PROFILE.username||'user');
+  document.getElementById('prof-bio').textContent=PROFILE.bio||'';
+  document.getElementById('st-following').textContent=PROFILE.following_count||0;
+  document.getElementById('st-followers').textContent=PROFILE.followers_count||0;
+  document.getElementById('st-posts').textContent=PROFILE.posts_count||POSTS.filter(function(p){return p.user_id===USER.id;}).length||0;
+  document.getElementById('st-watching').textContent=WL.filter(function(w){return w.status==='watching';}).length;
+  var myPosts=IS_DEMO?[DEMO_POSTS[0]]:POSTS.filter(function(p){return p.user_id===USER.id;});
+  if(!myPosts.length){document.getElementById('prof-posts').innerHTML='<div class="empty"><div class="empty-e">✍️</div><p>No posts yet.</p></div>';return;}
+  document.getElementById('prof-posts').innerHTML='<div style="background:var(--card);border:1px solid var(--bord);border-radius:16px;overflow:hidden">'+myPosts.map(function(p){
+    return '<div style="padding:14px 16px;border-bottom:1px solid var(--bord)">'+(p.anime_tag?'<div class="anime-pill">📺 '+p.anime_tag+'</div>':'')+'<div class="post-body">'+p.body+'</div><div style="font-size:11px;color:var(--txt3);margin-top:8px">'+ago(p.created_at)+' · ❤️ '+fmt(p.likes_count)+' · 💬 '+fmt(p.comments_count)+'</div></div>';
+  }).join('')+'</div>';
+}
+
+function openEdit(){
+  document.getElementById('ep-name').value=PROFILE&&PROFILE.display_name?PROFILE.display_name:'';
+  document.getElementById('ep-bio').value=PROFILE&&PROFILE.bio?PROFILE.bio:'';
+  document.getElementById('edit-overlay').classList.add('open');
+}
+function closeEdit(){document.getElementById('edit-overlay').classList.remove('open');}
+
+function saveProfile(){
+  var name=document.getElementById('ep-name').value.trim();
+  var bio=document.getElementById('ep-bio').value.trim();
+  if(!IS_DEMO)SBC.from('profiles').update({display_name:name,bio:bio,avatar_letter:name[0].toUpperCase()}).eq('id',USER.id).then(function(){});
+  if(PROFILE){PROFILE.display_name=name;PROFILE.bio=bio;PROFILE.avatar_letter=name[0].toUpperCase();}
+  document.getElementById('nav-ava').textContent=name[0].toUpperCase();
+  document.getElementById('c-ava').textContent=name[0].toUpperCase();
+  closeEdit();renderProfile();toast('Profile updated! ✨');
+}
+
+function loadTrending(){
+  // Count posts per anime_tag from last 7 days
+  var since = new Date(Date.now() - 7*24*60*60*1000).toISOString();
+  SBC.from('posts').select('anime_tag').gte('created_at', since).not('anime_tag','is',null).then(function(res){
+    if(res.error || !res.data || !res.data.length) return;
+    // Count each tag
+    var counts = {};
+    res.data.forEach(function(p){
+      if(p.anime_tag){
+        counts[p.anime_tag] = (counts[p.anime_tag]||0) + 1;
+      }
+    });
+    // Sort by count
+    var sorted = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];}).slice(0,5);
+    if(!sorted.length) return;
+    var total = res.data.length;
+    var html = sorted.map(function(tag, i){
+      var count = counts[tag];
+      var pct = Math.round((count/total)*100);
+      var rankClass = i < 2 ? 't-hot' : 't-mid';
+      var rankLabel = i === 0 ? '🔥' : String(i+1);
+      return '<div class="tr-row" onclick="go('discover')"><div class="tr-rank '+rankClass+'">'+rankLabel+'</div><div class="tr-name">'+tag+'</div><div class="tr-pct">'+count+' posts</div></div>';
+    }).join('');
+    document.getElementById('trending-list').innerHTML = html;
+  });
+}
+
+function renderWTF(){
+  var demo_users=[{n:'SakuraFan',h:'sakurafan99',l:'S',c:'linear-gradient(135deg,#7c3aed,#be185d)'},{n:'KaizokuKing',h:'kaizoku_king',l:'K',c:'linear-gradient(135deg,#b45309,#dc2626)'},{n:'AnimeLord',h:'anime_lord',l:'A',c:'linear-gradient(135deg,#0e7490,#1d4ed8)'}];
+  if(IS_DEMO){
+    document.getElementById('wtf').innerHTML=demo_users.map(function(u){
+      return '<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--bord)"><div style="width:36px;height:36px;border-radius:50%;background:'+u.c+';display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:14px;font-weight:800;flex-shrink:0">'+u.l+'</div><div style="flex:1"><div style="font-family:var(--font-h);font-size:13px;font-weight:800">'+u.n+'</div><div style="font-size:11px;color:var(--txt3)">@'+u.h+'</div></div><button onclick="toast(\'Following '+u.n+'! 🎉\')" style="background:var(--grd1);color:#fff;border:none;border-radius:8px;font-family:var(--font-h);font-size:11px;font-weight:800;padding:5px 12px;cursor:pointer">Follow</button></div>';
+    }).join('');
+    return;
+  }
+  SBC.from('profiles').select('*').neq('id',USER.id).order('followers_count',{ascending:false}).limit(3).then(function(res){
+    var users=res.data||[];
+    document.getElementById('wtf').innerHTML=users.length?users.map(function(u){
+      return '<div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--bord)"><div style="width:36px;height:36px;border-radius:50%;background:'+getColor(u.username)+';display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:14px;font-weight:800;flex-shrink:0">'+(u.avatar_letter||'?')+'</div><div style="flex:1;min-width:0"><div style="font-family:var(--font-h);font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+u.display_name+'</div><div style="font-size:11px;color:var(--txt3)">@'+u.username+'</div></div><button onclick="doFollow(\''+u.id+'\',this)" style="background:var(--grd1);color:#fff;border:none;border-radius:8px;font-family:var(--font-h);font-size:11px;font-weight:800;padding:5px 12px;cursor:pointer;white-space:nowrap">Follow</button></div>';
+    }).join(''):'<div style="color:var(--txt3);font-size:13px;padding:8px 0">No other users yet — invite your friends!</div>';
+  });
+}
+
+function doFollow(id,btn){
+  SBC.from('follows').insert({follower_id:USER.id,following_id:id}).then(function(res){
+    if(res.error){toast('Already following!');return;}
+    btn.textContent='Following';btn.style.background='var(--bg3)';btn.style.color='var(--txt2)';btn.style.border='1px solid var(--bord)';
+    if(PROFILE){PROFILE.following_count=(PROFILE.following_count||0)+1;}
+    document.getElementById('st-following').textContent=PROFILE?PROFILE.following_count:0;
+    toast('Followed! 🎉');
+  });
+}
+
+SBC.auth.getSession().then(function(res){
+  var session=res.data&&res.data.session?res.data.session:null;
+  if(session){
+    USER=session.user;
+    SBC.from('profiles').select('*').eq('id',USER.id).single().then(function(r){
+      PROFILE=r.data;
+      SBC.from('watchlist').select('*').eq('user_id',USER.id).then(function(wr){
+        WL=wr.data||[];enterApp();
+      });
+    });
+  }
+});
+
+SBC.auth.onAuthStateChange(function(event,session){
+  if(event==='SIGNED_IN'&&session&&!USER){
+    USER=session.user;
+    SBC.from('profiles').select('*').eq('id',USER.id).single().then(function(r){
+      PROFILE=r.data;
+      SBC.from('watchlist').select('*').eq('user_id',USER.id).then(function(wr){
+        WL=wr.data||[];enterApp();
+      });
+    });
+  }
+  if(event==='SIGNED_OUT'){
+    USER=null;PROFILE=null;
+    document.getElementById('auth-screen').style.display='flex';
+    document.getElementById('app-screen').classList.remove('on');
+  }
+});
+</script>
+</body>
+</html>
