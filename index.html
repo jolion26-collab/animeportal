@@ -174,9 +174,9 @@ body{font-family:var(--font-b);color:var(--txt);font-size:14px}
 .prof-banner{height:180px;background:var(--bg2);position:relative;overflow:hidden}
 .prof-banner-ov{position:absolute;inset:0;background:linear-gradient(135deg,rgba(109,40,217,0.4),rgba(190,24,93,0.3))}
 .prof-banner-bg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:16px;font-size:75px;opacity:0.05;flex-wrap:wrap;padding:16px}
-.prof-ava-ring{position:absolute;bottom:-44px;left:26px;width:88px;height:88px;border-radius:50%;background:var(--grd1);padding:3px;border:4px solid var(--bg)}
+.prof-ava-ring{position:absolute;bottom:-50px;left:26px;width:96px;height:96px;border-radius:50%;background:var(--grd1);padding:4px;border:4px solid var(--bg)}
 .prof-ava-in{width:100%;height:100%;border-radius:50%;background:var(--bg1);display:flex;align-items:center;justify-content:center;font-family:var(--font-h);font-size:32px;font-weight:900}
-.prof-body{padding:60px 26px 26px}
+.prof-body{padding:68px 26px 26px}
 .prof-top{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
 .prof-name{font-family:var(--font-h);font-size:22px;font-weight:900;letter-spacing:-0.02em}
 .prof-handle{font-size:13px;color:var(--txt3);margin-top:2px}
@@ -296,6 +296,12 @@ body{font-family:var(--font-b);color:var(--txt);font-size:14px}
                 <option>Jujutsu Kaisen</option><option>Death Note</option><option>Evangelion</option>
                 <option>Kaguya-sama</option><option>Attack on Titan</option><option>Chainsaw Man</option>
                 <option>My Hero Academia</option><option>Hunter x Hunter</option><option>Fullmetal Alchemist</option>
+                <option>Naruto</option><option>Dragon Ball Z</option><option>Bleach</option>
+                <option>Steins;Gate</option><option>Re:Zero</option><option>Vinland Saga</option>
+                <option>Haikyuu</option><option>Mob Psycho 100</option><option>Tokyo Ghoul</option>
+                <option>Violet Evergarden</option><option>Your Lie in April</option><option>Clannad</option>
+                <option>Toradora</option><option>No Game No Life</option><option>Made in Abyss</option>
+                <option>Konosuba</option><option>Spy x Family</option><option>Sword Art Online</option>
               </select>
               <button class="c-post" id="c-post-btn" onclick="doPost()">Post ⚡</button>
             </div>
@@ -713,6 +719,14 @@ function doneWL(id,i){
 
 function renderProfile(){
   if(!PROFILE)return;
+  // Reload watchlist count from DB
+  if(!IS_DEMO){
+    SBC.from('watchlist').select('*').eq('user_id',USER.id).then(function(wr){
+      WL=wr.data||[];
+      document.getElementById('st-watching').textContent=WL.filter(function(w){return w.status==='watching';}).length;
+      document.getElementById('wl-badge').textContent=WL.length;
+    });
+  }
   document.getElementById('prof-ava').textContent=PROFILE.avatar_letter||'?';
   document.getElementById('prof-name').textContent=PROFILE.display_name||'User';
   document.getElementById('prof-handle').textContent='@'+(PROFILE.username||'user');
