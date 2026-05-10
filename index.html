@@ -768,28 +768,23 @@ function saveProfile(){
 }
 
 function loadTrending(){
-  // Count posts per anime_tag from last 7 days
   var since = new Date(Date.now() - 7*24*60*60*1000).toISOString();
   SBC.from('posts').select('anime_tag').gte('created_at', since).not('anime_tag','is',null).then(function(res){
     if(res.error || !res.data || !res.data.length) return;
-    // Count each tag
     var counts = {};
     res.data.forEach(function(p){
-      if(p.anime_tag){
-        counts[p.anime_tag] = (counts[p.anime_tag]||0) + 1;
-      }
+      if(p.anime_tag) counts[p.anime_tag] = (counts[p.anime_tag]||0) + 1;
     });
-    // Sort by count
     var sorted = Object.keys(counts).sort(function(a,b){return counts[b]-counts[a];}).slice(0,5);
     if(!sorted.length) return;
-    var total = res.data.length;
-    var html = sorted.map(function(tag, i){
+    var html = '';
+    for(var i=0;i<sorted.length;i++){
+      var tag = sorted[i];
       var count = counts[tag];
-      var pct = Math.round((count/total)*100);
       var rankClass = i < 2 ? 't-hot' : 't-mid';
-      var rankLabel = i === 0 ? '🔥' : String(i+1);
-      return '<div class="tr-row" onclick="go('discover')"><div class="tr-rank '+rankClass+'">'+rankLabel+'</div><div class="tr-name">'+tag+'</div><div class="tr-pct">'+count+' posts</div></div>';
-    }).join('');
+      var rankLabel = i === 0 ? 'F' : String(i+1);
+      html += '<div class="tr-row" onclick="go(String.fromCharCode(100,105,115,99,111,118,101,114))"><div class="tr-rank '+rankClass+'">'+rankLabel+'</div><div class="tr-name">'+tag+'</div><div class="tr-pct">'+count+' posts</div></div>';
+    }
     document.getElementById('trending-list').innerHTML = html;
   });
 }
